@@ -36,6 +36,9 @@ frontend/build/
 # Logs
 *.log
 
+# pxxl
+.pxxl/
+
 # Test files
 test_*.py
 test_db.py

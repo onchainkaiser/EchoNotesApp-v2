@@ -14,10 +14,15 @@ app = FastAPI(
     version="2.0.0"
 )
 
-# Add CORS middleware - IMPORTANT for frontend to work
+# CORS - Allow your frontend URLs
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Vite dev server
+    allow_origins=[
+        "http://localhost:5173",  # Local development
+        "https://*.pxxl.app",      # All pxxl subdomains
+        "https://*.vercel.app",    # If using Vercel for frontend
+        "*"                        # Or allow all (less secure but easier for testing)
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
