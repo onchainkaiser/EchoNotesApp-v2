@@ -1,27 +1,48 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
-from database.models import get_db, init_db
+from database.models import get_db, init_db, engine  # 👈 make sure engine is imported
 from typing import List
+from contextlib import asynccontextmanager
 import crud
 from ai.gemini import generate_summary, suggest_category, extract_key_points, enhance_note
 from schemas import NoteCreate, NoteUpdate, NoteResponse, NoteCreateAI, NoteEnhanced
 
 
+# ✅ Lifespan context for startup + shutdown
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Handles app startup and graceful shutdown"""
+    # --- Startup phase ---
+    await init_db()
+    print("✅ Database initialized successfully!")
+
+    yield  # 🚀 Hand control over to FastAPI
+
+    # --- Shutdown phase ---
+    if engine:
+        await engine.dispose()
+        print("🧹 Database connection closed.")
+    print("👋 Shutting down EchoNotes v2...")
+
+
+# ✅ App configuration
 app = FastAPI(
     title="EchoNotes v2",
     description="A modern note-taking API with AI-powered summaries",
-    version="2.0.0"
+    version="2.0.0",
+    lifespan=lifespan
 )
 
-# CORS - Allow your frontend URLs
+
+# ✅ CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",  # Local development
-        "https://*.pxxl.app",      # All pxxl subdomains
-        "https://*.vercel.app",    # If using Vercel for frontend
-        "*"                        # Or allow all (less secure but easier for testing)
+        "http://localhost:5173",  # Local dev
+        "https://*.pxxl.app",     # All pxxl subdomains
+        "https://*.vercel.app",   # Vercel frontends
+        "*"                       # Allow all for testing
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -29,13 +50,7 @@ app.add_middleware(
 )
 
 
-@app.on_event("startup")
-async def on_startup():
-    """Initialize database on startup."""
-    await init_db()
-    print("✅ Database initialized successfully!")
-
-
+# ✅ Routes
 @app.get("/")
 async def home():
     return {
@@ -52,10 +67,10 @@ async def create_note(
 ):
     """Create a new note"""
     return await crud.create_note(
-        db, 
-        note.title, 
-        note.content, 
-        note.summary, 
+        db,
+        note.title,
+        note.content,
+        note.summary,
         note.category
     )
 
@@ -66,23 +81,23 @@ async def create_note_with_ai(
     db: AsyncSession = Depends(get_db)
 ):
     """Create a new note with AI-generated summary and category"""
-    
+
     # Generate AI enhancements
     enhancements = await enhance_note(note.title, note.content)
-    
-    # Use AI suggestions or user provided values
+
+    # Use AI suggestions or user-provided values
     summary = enhancements["summary"] if note.auto_summarize else ""
     category = enhancements["category"] if note.auto_categorize else None
-    
+
     # Create the note
     created_note = await crud.create_note(
-        db, 
-        note.title, 
-        note.content, 
-        summary, 
+        db,
+        note.title,
+        note.content,
+        summary,
         category
     )
-    
+
     # Add key points to response
     response_dict = {
         "id": created_note.id,
@@ -93,7 +108,7 @@ async def create_note_with_ai(
         "created_at": created_note.created_at,
         "key_points": enhancements["key_points"]
     }
-    
+
     return response_dict
 
 
@@ -118,12 +133,12 @@ async def summarize_note(note_id: int, db: AsyncSession = Depends(get_db)):
     note = await crud.get_note_by_id(db, note_id)
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
-    
+
     summary = await generate_summary(note.content)
-    
+
     # Update the note with the new summary
     updated_note = await crud.update_note(db, note_id, summary=summary)
-    
+
     return {"summary": summary, "note": updated_note}
 
 
@@ -133,12 +148,12 @@ async def categorize_note(note_id: int, db: AsyncSession = Depends(get_db)):
     note = await crud.get_note_by_id(db, note_id)
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
-    
+
     category = await suggest_category(note.title, note.content)
-    
+
     # Update the note with the suggested category
     updated_note = await crud.update_note(db, note_id, category=category)
-    
+
     return {"category": category, "note": updated_note}
 
 
@@ -148,9 +163,9 @@ async def get_key_points(note_id: int, db: AsyncSession = Depends(get_db)):
     note = await crud.get_note_by_id(db, note_id)
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
-    
+
     key_points = await extract_key_points(note.content)
-    
+
     return {"key_points": key_points}
 
 
@@ -162,11 +177,11 @@ async def update_note(
 ):
     """Update a note"""
     note = await crud.update_note(
-        db, 
-        note_id, 
-        note_update.title, 
-        note_update.content, 
-        note_update.summary, 
+        db,
+        note_id,
+        note_update.title,
+        note_update.content,
+        note_update.summary,
         note_update.category
     )
     if not note:
