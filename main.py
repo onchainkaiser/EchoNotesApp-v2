@@ -41,7 +41,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",  # Local dev
         "https://*.pxxl.app",     # All pxxl subdomains
-        "https://*.vercel.app",   # Vercel frontends
+        "https://echo-notes-app-v2.vercel.app",   # Vercel frontends
         "*"                       # Allow all for testing
     ],
     allow_credentials=True,
