@@ -5,12 +5,12 @@ from database.models import Note
 from datetime import datetime
 
 
-async def create_note(db: AsyncSession, title: str, content: str, summary: str = "", category: str = None):
+async def create_note(db: AsyncSession, note):
     new_note = Note(
-        title=title,
-        content=content,
-        summary=summary,
-        category=category,
+        title=note.title,
+        content=note.content,
+        summary=note.summary if note.summary else "",
+        category=note.category,
         created_at=datetime.utcnow()
     )
     db.add(new_note)

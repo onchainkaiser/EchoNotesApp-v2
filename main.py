@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
-from database.models import get_db, init_db, engine  # 👈 make sure engine is imported
+from database.models import get_db, init_db, engine  # Make sure engine is imported
 from typing import List
 from contextlib import asynccontextmanager
 import crud
@@ -35,15 +35,10 @@ app = FastAPI(
 )
 
 
-# ✅ CORS middleware
+# ✅ CORS middleware (fixed)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",  # Local dev
-        "https://*.pxxl.app",     # All pxxl subdomains
-        "https://echo-notes-app-v2.vercel.app",   # Vercel frontends
-        "*"                       # Allow all for testing
-    ],
+    allow_origins=["*"],  # allow all for testing
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -66,13 +61,7 @@ async def create_note(
     db: AsyncSession = Depends(get_db)
 ):
     """Create a new note"""
-    return await crud.create_note(
-        db,
-        note.title,
-        note.content,
-        note.summary,
-        note.category
-    )
+    return await crud.create_note(db, note)  # Pass Pydantic object directly
 
 
 @app.post("/notes/ai", response_model=NoteEnhanced, status_code=201)
@@ -92,10 +81,12 @@ async def create_note_with_ai(
     # Create the note
     created_note = await crud.create_note(
         db,
-        note.title,
-        note.content,
-        summary,
-        category
+        NoteCreate(
+            title=note.title,
+            content=note.content,
+            summary=summary,
+            category=category
+        )
     )
 
     # Add key points to response
