@@ -38,11 +38,12 @@ app = FastAPI(
 # ✅ CORS middleware (fixed)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://echo-notes-app-v2.vercel.app"],
+    allow_origins=["*"],  # allow all for testing
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # ✅ Routes
 @app.get("/")
