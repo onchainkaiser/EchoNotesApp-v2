@@ -38,10 +38,10 @@ app = FastAPI(
 # ✅ CORS middleware (fixed)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins = [
-    "https://echo-notes-app.vercel.app",  # your Vercel frontend
-    "http://localhost:5173"               # for local dev (optional)
-    ]
+    allow_origins=[
+        "https://echo-notes-app.vercel.app",  # your Vercel frontend
+        "http://localhost:5173"               # for local dev (optional)
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
